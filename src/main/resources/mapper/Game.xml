@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="Scrabbleclub.repositories.GameRepository">
+	<!--<cache /> -->
+	<resultMap id="HashMap" type="java.util.HashMap"></resultMap>
+	<select id="getWinAndAvg" resultMap="HashMap">
+		SELECT member.member_id,count(member_id) AS win_numbers,avg(winner_point) AS average FROM member
+		LEFT JOIN game ON game.winner_id= member.member_id
+		WHERE game.winner_id IS NOT NULL
+		GROUP BY member_id
+	</select>
+	<select id="getLose" resultMap="HashMap">
+		SELECT 	member.member_id,count(member_id) AS lose_numbers FROM member
+		LEFT JOIN game ON game.loser_id= member.member_id
+		WHERE game.winner_id IS NOT NULL
+		GROUP BY member_id
+	</select>
+	<select id="getHighScore" resultMap="HashMap">
+		SELECT member.member_id,MAX(game.winner_point) AS max_point FROM member
+		LEFT JOIN game ON member.member_id = game.winner_id
+		WHERE game.winner_point IS NOT NULL AND member.member_id = game.winner_id
+		GROUP BY member.member_id
+	</select>
+	<select id="getHighScoreDetail" resultMap="HashMap">
+		SELECT g.member_id,g.name AS winner_name,game.game_id,game.game_name,
+		g.max_point AS max_point,member.name AS loser_name, game.create_at
+		FROM game
+		LEFT JOIN member on member.member_id= game.loser_id
+		LEFT JOIN
+			(   SELECT member.name,member.member_id,MAX(game.winner_point) AS max_point FROM member
+				LEFT JOIN game ON member.member_id = game.winner_id
+				WHERE game.winner_point IS NOT NULL AND member.member_id = game.winner_id
+				GROUP BY member.member_id) g ON	g.member_id=game.winner_id AND g.max_point = game.winner_point
+				WHERE
+				g.max_point IS NOT NULL AND g.member_id = #{member_id};
+	</select>
+	<select id="getTop10" resultMap="HashMap">
+		SELECT member.member_id,member.name, avg(winner_point) AS average FROM member
+		LEFT JOIN game ON game.winner_id= member.member_id
+		WHERE game.winner_id IS NOT NULL
+		GROUP BY member_id
+		Having COUNT(member.member_id) > 10
+		ORDER BY 1 DESC
+	</select>
+	<select id="getLeaderHighestScore" resultMap="HashMap">
+		SELECT member.name,game.game_name,game.game_id,m.name AS loser_name,game.create_at, 
+		game.winner_point AS highest_point FROM member
+		LEFT JOIN game ON member.member_id = game.winner_id
+		LEFT JOIN member m ON m.member_id= game.loser_id
+		WHERE game.winner_point IS NOT NULL
+		ORDER BY winner_point DESC LIMIT 1
+	</select>
+	<select id="getLeaderLowestScore" resultMap="HashMap">
+		SELECT member.name,game.game_name,game.game_id,m.name AS loser_name,game.create_at, 
+		game.winner_point AS lowest_point FROM member
+		LEFT JOIN game ON member.member_id = game.winner_id
+		LEFT JOIN member m ON m.member_id= game.loser_id
+		WHERE game.winner_point IS NOT NULL 
+		ORDER BY winner_point LIMIT 1
+	</select>
+</mapper>
